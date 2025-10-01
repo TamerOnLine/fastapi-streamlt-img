@@ -224,6 +224,8 @@ if btn_save:
         persist_json_atomic(out, payload)
         st.sidebar.success(f"تم الحفظ: {out.name}")
 
+
+
 # ─────────────────────────────
 # نموذج الإدخال
 # ─────────────────────────────
@@ -332,29 +334,26 @@ def call_generate_form(api_base_value: str, form_state: Dict[str, Any]) -> bytes
     return resp.content
 
 # ─────────────────────────────
-# أزرار التوليد/التنزيل
+# أزرار التوليد/التحميل (في الـ sidebar)
 # ─────────────────────────────
-colG1, colG2 = st.columns([1, 1])
-with colG1:
-    if st.button("🧾 Generate PDF"):
-        form_payload = payload_from_form()
-        try:
-            pdf_bytes = call_generate_form(api_base(), form_payload)
-            st.session_state.pdf_bytes = pdf_bytes
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            st.session_state.pdf_filename = f"resume_{ts}.pdf"
-            st.success("تم إنشاء الـ PDF ✅")
-        except Exception as e:
-            st.error(f"فشل طلب التوليد: {e}")
+st.sidebar.header("📄 PDF Generator")
 
+if st.sidebar.button("🧾 Generate PDF"):
+    form_payload = payload_from_form()
+    try:
+        pdf_bytes = call_generate_form(api_base(), form_payload)
+        st.session_state.pdf_bytes = pdf_bytes
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        st.session_state.pdf_filename = f"resume_{ts}.pdf"
+        st.sidebar.success("تم إنشاء الـ PDF ✅")
+    except Exception as e:
+        st.sidebar.error(f"فشل طلب التوليد: {e}")
 
-
-# زر تنزيل دائم أسفل الصفحة عند توافر PDF
+# زر تحميل يظهر فقط بعد التوليد
 if st.session_state.get("pdf_bytes"):
-    st.download_button(
+    st.sidebar.download_button(
         "⬇️ Download PDF",
         data=st.session_state.pdf_bytes,
         file_name=st.session_state.pdf_filename,
         mime="application/pdf",
-        key="download_bottom",
     )

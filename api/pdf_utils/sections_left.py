@@ -55,25 +55,29 @@ def draw_left_column(
     if name:
         c.setFont("Helvetica-Bold", NAME_SIZE); c.setFillColor(HEADING_COLOR)
         c.drawCentredString(inner_x + inner_w/2, cursor, name)
-        cursor -= NAME_GAP * 1.0  # mm → نفس الوحدة المستخدمة مسبقًا
+        cursor -= NAME_GAP * 1.0
 
-    # عنوان فرعي
-    c.setFont("Helvetica-Bold", HEADING_SIZE); c.setFillColor(HEADING_COLOR)
-    c.drawCentredString(inner_x + inner_w/2, cursor, "Persönliche Informationen")
-    cursor -= 6
-    from .shapes import draw_rule
-    draw_rule(c, inner_x, cursor, inner_w); cursor -= 6
+    # 👇 بدّل المقطع التالي بالمقطع الجديد
+    has_contact = any([location, phone, email, birthdate, github, linkedin])
+    if has_contact:
+        # عنوان "Persönliche Informationen" + الخط
+        c.setFont("Helvetica-Bold", HEADING_SIZE); c.setFillColor(HEADING_COLOR)
+        c.drawCentredString(inner_x + inner_w/2, cursor, "Persönliche Informationen")
+        cursor -= 6
+        from .shapes import draw_rule
+        draw_rule(c, inner_x, cursor, inner_w); cursor -= 6
 
-    # معلومات الاتصال
-    if location:  cursor = info_line(c, inner_x, cursor, "Ort",          location,  inner_w)
-    if phone:     cursor = info_line(c, inner_x, cursor, "Telefon",      phone,     inner_w)
-    if email:     cursor = info_line(c, inner_x, cursor, "E-Mail",       email,     inner_w)
-    if birthdate: cursor = info_line(c, inner_x, cursor, "Geburtsdatum", birthdate, inner_w)
-    if github:    cursor = info_line(c, inner_x, cursor, "GitHub",       github,    inner_w)
-    if linkedin:  cursor = info_line(c, inner_x, cursor, "LinkedIn",     linkedin,  inner_w)
+        # معلومات الاتصال (نرسم الموجود فقط)
+        if location:  cursor = info_line(c, inner_x, cursor, "Ort",          location,  inner_w)
+        if phone:     cursor = info_line(c, inner_x, cursor, "Telefon",      phone,     inner_w)
+        if email:     cursor = info_line(c, inner_x, cursor, "E-Mail",       email,     inner_w)
+        if birthdate: cursor = info_line(c, inner_x, cursor, "Geburtsdatum", birthdate, inner_w)
+        if github:    cursor = info_line(c, inner_x, cursor, "GitHub",       github,    inner_w)
+        if linkedin:  cursor = info_line(c, inner_x, cursor, "LinkedIn",     linkedin,  inner_w)
 
-    if any([location, phone, email, birthdate, github, linkedin]):
         cursor -= LEFT_AFTER_CONTACT_GAP
+    # إذا ما في أي بيانات اتصال → لا نرسم العنوان ولا الخط ولا أي شيء
+
 
     # المهارات
     if skills:
