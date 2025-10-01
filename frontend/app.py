@@ -52,9 +52,29 @@ K = {
     "api_base": "f_api_base",
 }
 
+DEFAULT_API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
 for key in K.values():
     if key not in st.session_state:
-        st.session_state[key] = "" if key != K["rtl_mode"] else False
+        if key == K["rtl_mode"]:
+            st.session_state[key] = False
+        elif key == K["api_base"]:
+            st.session_state[key] = DEFAULT_API_BASE
+        else:
+            st.session_state[key] = ""
+
+# 👇 مهم: لو المفتاح موجود لكنه فاضي من جلسة سابقة، عَيّن الافتراضي
+if not (st.session_state.get(K["api_base"]) or "").strip():
+    st.session_state[K["api_base"]] = DEFAULT_API_BASE
+
+
+# --- API base input in sidebar (مصدر الحقيقة الوحيد لعنوان الـ API) ---
+st.sidebar.subheader("API connection")
+st.sidebar.text_input(
+    "API Base URL",
+    key=K["api_base"],
+    help="مثال: http://127.0.0.1:8000 أو http://localhost:8000",
+)
 
 # حالة حفظ/عرض PDF
 if "pdf_bytes" not in st.session_state:
@@ -170,6 +190,14 @@ def apply_payload_to_form(p: Dict[str, Any]) -> None:
         st.session_state[PHOTO_NAME_KEY] = None
 
 
+def api_base() -> str:
+    """يرجع عنوان الـ API من الـ sidebar مع تنظيفه."""
+    base = (st.session_state.get(K["api_base"]) or "").strip()
+    if not base:
+        base = "http://127.0.0.1:8000"
+    return base.rstrip("/")
+
+
 # ─────────────────────────────
 # الشريط الجانبي: Save / Load
 # ─────────────────────────────
@@ -261,8 +289,12 @@ with col2:
 # ─────────────────────────────
 # استدعاء FastAPI (multipart)
 # ─────────────────────────────
-def call_generate_form(api_base: str, form_state: Dict[str, Any]) -> bytes:
-    url = api_base.rstrip("/") + "/generate-form"
+def call_generate_form(api_base_value: str, form_state: Dict[str, Any]) -> bytes:
+    base = (api_base_value or "").strip()
+    if not base.startswith(("http://", "https://")):
+        raise ValueError("API Base غير صحيح. مثال صحيح: http://127.0.0.1:8000")
+
+    url = base.rstrip("/") + "/generate-form"
 
     # API يتوقع skills_text / languages_text كنصوص
     skills_text = ", ".join(form_state.get("skills", []))
@@ -300,17 +332,14 @@ def call_generate_form(api_base: str, form_state: Dict[str, Any]) -> bytes:
     return resp.content
 
 # ─────────────────────────────
-# API base + أزرار التوليد/التحميل
+# أزرار التوليد/التنزيل
 # ─────────────────────────────
-api_base = st.text_input("API Base", value=st.session_state.get(K["api_base"], "http://127.0.0.1:8000"))
-st.session_state[K["api_base"]] = api_base
-
 colG1, colG2 = st.columns([1, 1])
 with colG1:
     if st.button("🧾 Generate PDF"):
         form_payload = payload_from_form()
         try:
-            pdf_bytes = call_generate_form(api_base, form_payload)
+            pdf_bytes = call_generate_form(api_base(), form_payload)
             st.session_state.pdf_bytes = pdf_bytes
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
             st.session_state.pdf_filename = f"resume_{ts}.pdf"
@@ -318,14 +347,7 @@ with colG1:
         except Exception as e:
             st.error(f"فشل طلب التوليد: {e}")
 
-with colG2:
-    if st.session_state.get("pdf_bytes"):
-        st.download_button(
-            "⬇️ Download PDF",
-            data=st.session_state.pdf_bytes,
-            file_name=st.session_state.pdf_filename,
-            mime="application/pdf",
-        )
+
 
 # زر تنزيل دائم أسفل الصفحة عند توافر PDF
 if st.session_state.get("pdf_bytes"):
